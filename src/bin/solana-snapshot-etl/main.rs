@@ -1,6 +1,4 @@
 use crate::csv::CsvDumper;
-use crate::geyser::GeyserDumper;
-use crate::geyser_plugin::load_plugin;
 use crate::programs::ProgramDumper;
 use crate::sqlite::SqliteIndexer;
 use clap::{ArgGroup, Parser};
@@ -16,8 +14,6 @@ use std::io::{stdout, IoSliceMut, Read, Write};
 use std::path::{Path, PathBuf};
 
 mod csv;
-mod geyser;
-mod geyser_plugin;
 mod mpl_metadata;
 mod programs;
 mod sqlite;
@@ -69,18 +65,7 @@ fn _main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Done!");
     }
     if let Some(geyser_config_path) = args.geyser {
-        info!("Dumping to Geyser plugin: {}", &geyser_config_path);
-        let plugin = unsafe { load_plugin(&geyser_config_path)? };
-        assert!(
-            plugin.account_data_notifications_enabled(),
-            "Geyser plugin does not accept account data notifications"
-        );
-        let mut dumper = GeyserDumper::new(plugin);
-        for append_vec in loader.iter() {
-            dumper.on_append_vec(append_vec?)?;
-        }
-        drop(dumper);
-        println!("Done!");
+        panic!("Geyser not supported");
     }
     if let Some(sqlite_out_path) = args.sqlite_out {
         info!("Dumping to SQLite3: {}", &sqlite_out_path);

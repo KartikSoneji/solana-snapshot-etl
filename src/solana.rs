@@ -17,12 +17,10 @@
 use bincode::Options;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
-use solana_runtime::accounts_db::BankHashInfo;
-use solana_runtime::ancestors::AncestorsForSerialization;
-use solana_runtime::append_vec::StoredMetaWriteVersion;
-use solana_runtime::blockhash_queue::BlockhashQueue;
-use solana_runtime::epoch_stakes::EpochStakes;
-use solana_runtime::rent_collector::RentCollector;
+use solana_accounts_db::ancestors::AncestorsForSerialization;
+use solana_accounts_db::blockhash_queue::BlockhashQueue;
+use solana_rent_collector::RentCollector;
+use solana_runtime::bank::BankHashStats;
 use solana_runtime::stakes::Stakes;
 use solana_sdk::clock::{Epoch, UnixTimestamp};
 use solana_sdk::deserialize_utils::default_on_eof;
@@ -92,14 +90,14 @@ pub struct DeserializableVersionedBank {
     pub stakes: Stakes<Delegation>,
     #[allow(dead_code)]
     unused_accounts: UnusedAccounts,
-    pub epoch_stakes: HashMap<Epoch, EpochStakes>,
+    pub unused_epoch_stakes: HashMap<Epoch, ()>,
     pub is_delta: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub struct AccountsDbFields<T>(
     pub HashMap<Slot, Vec<T>>,
-    pub StoredMetaWriteVersion,
+    pub u64, // obsolete, formerly write_version
     pub Slot,
     pub BankHashInfo,
     /// all slots that were roots within the last epoch
@@ -110,10 +108,18 @@ pub struct AccountsDbFields<T>(
     pub Vec<(Slot, Hash)>,
 );
 
-pub type SerializedAppendVecId = usize;
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+pub struct BankHashInfo {
+    obsolete_accounts_delta_hash: [u8; 32],
+    obsolete_accounts_hash: [u8; 32],
+    stats: BankHashStats,
+}
 
+pub type SerializedAccountsFileId = usize;
+
+// Serializable version of AccountStorageEntry for snapshot format
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Deserialize)]
 pub struct SerializableAccountStorageEntry {
-    pub id: SerializedAppendVecId,
+    pub id: SerializedAccountsFileId,
     pub accounts_current_len: usize,
 }

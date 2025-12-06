@@ -50,13 +50,17 @@ pub type StoredMetaWriteVersion = u64;
 /// Meta contains enough context to recover the index from storage itself
 /// This struct will be backed by mmaped and snapshotted data files.
 /// So the data layout must be stable and consistent across the entire cluster!
+#[repr(C)]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StoredMeta {
     /// global write version
-    pub write_version: StoredMetaWriteVersion,
+    /// This will be made completely obsolete such that we stop storing it.
+    /// We will not support multiple append vecs per slot anymore, so this concept is no longer necessary.
+    /// Order of stores of an account to an append vec will determine 'latest' account data per pubkey.
+    pub write_version_obsolete: u64,
+    pub data_len: u64,
     /// key for the account
     pub pubkey: Pubkey,
-    pub data_len: u64,
 }
 
 /// This struct will be backed by mmaped and snapshotted data files.
@@ -65,12 +69,12 @@ pub struct StoredMeta {
 pub struct AccountMeta {
     /// lamports in the account
     pub lamports: u64,
+    /// the epoch at which this account will next owe rent
+    pub rent_epoch: Epoch,
     /// the program that owns this account. If executable, the program that loads this account.
     pub owner: Pubkey,
     /// this account's data contains a loaded program (and is now read-only)
     pub executable: bool,
-    /// the epoch at which this account will next owe rent
-    pub rent_epoch: Epoch,
 }
 
 impl<'a, T: ReadableAccount> From<&'a T> for AccountMeta {
